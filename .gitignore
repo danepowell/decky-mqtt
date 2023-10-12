@@ -57,3 +57,5 @@ cli/*
 cli/decky
 
 buildinfo
+
+py_modules

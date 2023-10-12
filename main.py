@@ -1,10 +1,17 @@
 import os
+import sys
 
 # The decky plugin module is located at decky-loader/plugin
 # For easy intellisense checkout the decky-loader code one directory up
 # or add the `decky-loader/plugin` path to `python.analysis.extraPaths` in `.vscode/settings.json`
 import decky_plugin
+from time import sleep
+PLUGIN_DIR = os.path.dirname(os.path.realpath(__file__))
+sys.path.append(PLUGIN_DIR+"/py_modules")
+#from psutil import sensors_battery
+import paho.mqtt.publish as publish
 
+battery_status_file = "/sys/class/power_supply/BAT1/capacity"
 
 class Plugin:
     # A normal method. It can be called from JavaScript using call_plugin_function("method_1", argument1, argument2)
@@ -13,7 +20,19 @@ class Plugin:
 
     # Asyncio-compatible long-running code, executed in a task when the plugin is loaded
     async def _main(self):
-        decky_plugin.logger.info("Hello World!")
+        with open(battery_status_file) as state:
+            while True:
+                state.seek(0)
+                capacity = int(state.read())
+                decky_plugin.logger.info("Sending battery capacity %d" % capacity)
+                # @todo obviously make hostname, password, topic, send interval, etc configurable
+                publish.single("decky/battery", str(capacity), hostname="", auth={'username':'mosquitto', 'password':''})
+                sleep(300)
+        # psutil is broken: https://github.com/giampaolo/psutil/issues/2212
+        # while True:
+        #     battery = sensors_battery()
+        #     plugged = str(battery.power_plugged)
+        #     percent = str(battery.percent)
 
     # Function called first during the unload process, utilize this to handle your plugin being removed
     async def _unload(self):
