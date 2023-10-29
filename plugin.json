@@ -1,10 +1,10 @@
 {
-  "name": "decky-mqtt",
+  "name": "Decky MQTT",
   "author": "Dane Powell",
   "flags": ["debug", "_root"],
   "publish": {
     "tags": ["template", "root"],
-    "description": "Decky example plugin.",
+    "description": "Decky MQTT plugin.",
     "image": "https://opengraph.githubassets.com/1/SteamDeckHomebrew/PluginLoader"
   }
 }
