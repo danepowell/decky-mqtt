@@ -11,7 +11,8 @@ sys.path.append(PLUGIN_DIR+"/py_modules")
 #from psutil import sensors_battery
 import paho.mqtt.publish as publish
 
-battery_status_file = "/sys/class/power_supply/BAT1/capacity"
+battery_capacity_file = "/sys/class/power_supply/BAT1/capacity"
+battery_status_file = "/sys/class/power_supply/ACAD/online"
 
 class Plugin:
     # A normal method. It can be called from JavaScript using call_plugin_function("method_1", argument1, argument2)
@@ -19,15 +20,27 @@ class Plugin:
         return left + right
 
     # Asyncio-compatible long-running code, executed in a task when the plugin is loaded
+    # @todo obviously make hostname, password, topic, send interval, etc configurable
     async def _main(self):
-        with open(battery_status_file) as state:
-            while True:
-                state.seek(0)
-                capacity = int(state.read())
-                decky_plugin.logger.info("Sending battery capacity %d" % capacity)
-                # @todo obviously make hostname, password, topic, send interval, etc configurable
-                publish.single("decky/battery", str(capacity), hostname="", auth={'username':'mosquitto', 'password':''})
-                sleep(300)
+        capacity = 0
+        status = 'Unknown'
+        while True:
+            with open(battery_capacity_file) as state:
+                new_capacity = int(state.read())
+                if capacity != new_capacity:
+                    capacity = new_capacity
+                    decky_plugin.logger.info("Sending battery capacity %d" % capacity)
+                    publish.single("decky/battery", str(capacity), hostname="", auth={'username':'mosquitto', 'password':''})
+            with open(battery_status_file) as state:
+                raw_status = int(state.read())
+                new_status = 'Discharging'
+                if raw_status == 1:
+                    new_status = 'Charging'
+                if status != new_status:
+                    status = new_status
+                    decky_plugin.logger.info("Sending battery status %s" % status)
+                    publish.single("decky/status", status, hostname="", auth={'username':'mosquitto', 'password':''})
+            sleep(10)
         # psutil is broken: https://github.com/giampaolo/psutil/issues/2212
         # while True:
         #     battery = sensors_battery()
